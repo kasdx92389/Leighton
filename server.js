@@ -56,11 +56,16 @@ app.post('/api/orders', async (req, res) => {
 // ----- API Endpoint: ดึงข้อมูลออเดอร์ทั้งหมด (READ) -----
 app.get('/api/orders', async (req, res) => {
     try {
+        console.log("Attempting to fetch orders from the database.");
         const allOrders = await pool.query('SELECT * FROM orders ORDER BY transaction_datetime DESC');
+        console.log("Successfully fetched orders.");
         res.json(allOrders.rows);
     } catch (err) {
-        console.error('Error fetching orders:', err.message);
-        res.status(500).json({ error: 'Server Error', details: err.message });
+        console.error("!!! DATABASE ERROR while fetching orders:", err); // แสดง Error แบบละเอียด
+        res.status(500).json({ 
+            message: 'Error fetching orders: ' + err.message,
+            error: err // ส่งรายละเอียด error ไปด้วย
+        });
     }
 });
 
