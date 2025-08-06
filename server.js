@@ -14,10 +14,12 @@ app.use(cors()); // อนุญาตการเชื่อมต่อจา
 app.use(express.json()); // ทำให้ Express อ่านข้อมูล JSON จาก request body ได้
 app.use(express.static(path.join(__dirname, 'public'))); // บอกให้ Express รู้จักโฟลเดอร์ public
 
-// ตั้งค่าการเชื่อมต่อฐานข้อมูลจาก Environment Variable
+// ตั้งค่าการเชื่อมต่อฐานข้อมูลสำหรับ Render
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: {
+      rejectUnauthorized: false
+    }
 });
 
 // ----- API Endpoint: เพิ่มออเดอร์ใหม่ (CREATE) -----
