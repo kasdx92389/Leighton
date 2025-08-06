@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบันทึกออเดอร์</title>
+    <style>
+        body { font-family: 'Tahoma', 'sans-serif'; margin: 0; padding: 0; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 2rem; background-color: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        form { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .form-group { display: flex; flex-direction: column; }
+        .full-width { grid-column: 1 / -1; }
+        label { margin-bottom: 0.5rem; font-weight: bold; color: #555; font-size: 0.9rem; }
+        input, select, textarea { padding: 0.8rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; transition: border-color 0.3s, box-shadow 0.3s; }
+        input:focus, select:focus, textarea:focus { border-color: #3498db; box-shadow: 0 0 5px rgba(52, 152, 219, 0.5); outline: none; }
+        button { grid-column: 1 / -1; padding: 1rem; background: linear-gradient(45deg, #3498db, #2980b9); color: white; border: none; border-radius: 4px; font-size: 1.2rem; cursor: pointer; transition: background 0.3s; }
+        button:hover { background: linear-gradient(45deg, #2980b9, #3498db); }
+        #order-table { width: 100%; margin-top: 2rem; border-collapse: collapse; }
+        #order-table th, #order-table td { border: 1px solid #ddd; padding: 12px; text-align: left; font-size: 0.95rem; }
+        #order-table th { background-color: #34495e; color: white; }
+        #order-table tr:nth-child(even) { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>บันทึกออเดอร์ใหม่</h2>
+        <form id="order-form">
+            <div class="form-group"><label for="order_id">หมายเลขออเดอร์</label><input type="text" id="order_id" required></div>
+            <div class="form-group"><label for="customer_name">ชื่อลูกค้า</label><input type="text" id="customer_name" required></div>
+            <div class="form-group"><label for="platform">แพลทฟอร์ม</label><input type="text" id="platform"></div>
+            <div class="form-group"><label for="game_name">ชื่อเกม</label><input type="text" id="game_name"></div>
+            <div class="form-group"><label for="product_id">รหัสสินค้า</label><input type="text" id="product_id"></div>
+            <div class="form-group"><label for="quantity">จำนวน</label><input type="number" id="quantity" value="1"></div>
+            <div class="form-group full-width"><label for="package_details">แพ็คเกจ</label><input type="text" id="package_details"></div>
+            <div class="form-group"><label for="total_amount">ยอดเงินรวม</label><input type="number" step="0.01" id="total_amount"></div>
+            <div class="form-group"><label for="cost">ต้นทุน</label><input type="number" step="0.01" id="cost"></div>
+            <div class="form-group"><label for="status">สถานะรายการ</label>
+                <select id="status">
+                    <option>รอดำเนินการ</option>
+                    <option>รายการสำเร็จ</option>
+                    <option>ยกเลิก/คืนเงิน</option>
+                    <option>แก้ไขรายการ</option>
+                    <option>รายการผิดพลาด</option>
+                </select>
+            </div>
+            <div class="form-group"><label for="agent_name">ผู้ทำรายการ</label><input type="text" id="agent_name"></div>
+            <div class="form-group"><label for="top_up_channel">ช่องทางการเติม</label><input type="text" id="top_up_channel"></div>
+            <div class="form-group full-width"><label for="notes">หมายเหตุ</label><textarea id="notes" rows="3"></textarea></div>
+            <button type="submit">บันทึกออเดอร์</button>
+        </form>
+
+        <hr style="margin: 3rem 0; border-top: 1px solid #eee;">
+
+        <h2>รายการออเดอร์ทั้งหมด</h2>
+        <div style="overflow-x:auto;">
+            <table id="order-table">
+                <thead>
+                    <tr>
+                        <th>หมายเลขออเดอร์</th>
+                        <th>วันที่</th>
+                        <th>ลูกค้า</th>
+                        <th>แพลทฟอร์ม</th>
+                        <th>ยอดเงิน</th>
+                        <th>สถานะ</th>
+                        <th>ผู้ทำรายการ</th>
+                    </tr>
+                </thead>
+                <tbody id="order-list">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('order-form');
+            const orderList = document.getElementById('order-list');
+            const apiUrl = '/api/orders';
+
+            async function fetchOrders() {
+                try {
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    const orders = await response.json();
+                    
+                    orderList.innerHTML = '';
+                    orders.forEach(order => {
+                        const row = `
+                            <tr>
+                                <td>${order.order_id || ''}</td>
+                                <td>${new Date(order.transaction_datetime).toLocaleString('th-TH')}</td>
+                                <td>${order.customer_name || ''}</td>
+                                <td>${order.platform || ''}</td>
+                                <td>${order.total_amount ? parseFloat(order.total_amount).toFixed(2) : ''}</td>
+                                <td>${order.status || ''}</td>
+                                <td>${order.agent_name || ''}</td>
+                            </tr>
+                        `;
+                        orderList.innerHTML += row;
+                    });
+                } catch (error) {
+                    console.error('ไม่สามารถดึงข้อมูลออเดอร์ได้:', error);
+                    orderList.innerHTML = '<tr><td colspan="7">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
+                }
+            }
+
+            form.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                
+                const data = {
+                    order_id: document.getElementById('order_id').value,
+                    customer_name: document.getElementById('customer_name').value,
+                    platform: document.getElementById('platform').value,
+                    game_name: document.getElementById('game_name').value,
+                    product_id: document.getElementById('product_id').value,
+                    quantity: document.getElementById('quantity').value,
+                    package_details: document.getElementById('package_details').value,
+                    total_amount: document.getElementById('total_amount').value,
+                    cost: document.getElementById('cost').value,
+                    status: document.getElementById('status').value,
+                    agent_name: document.getElementById('agent_name').value,
+                    top_up_channel: document.getElementById('top_up_channel').value,
+                    notes: document.getElementById('notes').value
+                };
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data),
+                    });
+
+                    if (!response.ok) throw new Error('การบันทึกล้มเหลว');
+                    
+                    alert('บันทึกข้อมูลสำเร็จ!');
+                    form.reset();
+                    fetchOrders();
+                } catch (error) {
+                    console.error('เกิดข้อผิดพลาดในการบันทึก:', error);
+                    alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                }
+            });
+
+            fetchOrders();
+        });
+    </script>
+</body>
+</html>
